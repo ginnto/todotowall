@@ -54,6 +54,7 @@ function createContextMock() {
     save: vi.fn(),
     restore: vi.fn(),
     createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+    createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
     createPattern: vi.fn(() => '#000'),
     createImageData: vi.fn((width, height) => ({ data: new Uint8ClampedArray(width * height * 4) })),
     putImageData: vi.fn(),

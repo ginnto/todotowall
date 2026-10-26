@@ -18,19 +18,26 @@ export const HISTORY_LIMIT = 8
 export const DIMENSION_PRESETS = [
   { id: 'standard', label: 'Standard portrait', width: 1080, height: 2400 },
   { id: 'fullhd', label: 'Full HD portrait', width: 1080, height: 1920 },
+  { id: 'desktop', label: 'Desktop landscape', width: 1920, height: 1080 },
   { id: 'custom', label: 'Custom', width: 1080, height: 2400 },
 ]
 
+export const FEATURED_THEME_IDS = ['minimal-paper', 'soft-gradient', 'midnight-terminal']
+
 export const FONT_OPTIONS = [
-  { id: 'Inter', label: 'Inter', stack: 'Inter, system-ui, sans-serif' },
+  { id: 'system-ui', label: 'Modern Sans', stack: 'system-ui, "Segoe UI", sans-serif' },
+  { id: 'Georgia', label: 'Editorial Serif', stack: 'Georgia, "Times New Roman", serif' },
+  { id: 'Segoe UI', label: 'Clean Rounded', stack: '"Segoe UI", system-ui, sans-serif' },
+  { id: 'Arial', label: 'Classic Sans', stack: 'Arial, sans-serif' },
   { id: 'Manrope', label: 'Manrope', stack: 'Manrope, system-ui, sans-serif' },
   { id: 'Space Grotesk', label: 'Space Grotesk', stack: '"Space Grotesk", system-ui, sans-serif' },
-  { id: 'DM Sans', label: 'DM Sans', stack: '"DM Sans", system-ui, sans-serif' },
   { id: 'JetBrains Mono', label: 'JetBrains Mono', stack: '"JetBrains Mono", ui-monospace, monospace' },
   { id: 'IBM Plex Mono', label: 'IBM Plex Mono', stack: '"IBM Plex Mono", ui-monospace, monospace' },
 ]
 
-export const FONT_LOAD_SPECS = FONT_OPTIONS.map((font) => `600 48px "${font.id}"`)
+export const FONT_LOAD_SPECS = FONT_OPTIONS
+  .filter((font) => !['system-ui', 'Georgia', 'Segoe UI', 'Arial'].includes(font.id))
+  .map((font) => `600 48px "${font.id}"`)
 
 export const LAYOUT_OPTIONS = [
   { id: 'compact', label: 'Compact checklist' },
@@ -80,10 +87,14 @@ export const DEFAULT_SETTINGS = {
   showCounter: true,
   showProgress: true,
   completedStyle: 'checked',
-  themeId: 'midnight-terminal',
+  themeId: 'soft-gradient',
   accentColor: '',
   backgroundColor: '',
   useCustomBackground: false,
+  backgroundImage: '',
+  imageOverlay: 0.38,
+  imagePositionX: 0.5,
+  imagePositionY: 0.5,
   fontFamily: '',
   fontScale: 1,
   taskSpacing: 1,
@@ -102,7 +113,7 @@ export const DESIGN_PRESETS = [
     name: 'Night Ops',
     themeId: 'midnight-terminal',
     layout: 'compact',
-    fontFamily: 'JetBrains Mono',
+    fontFamily: 'system-ui',
     decorationIntensity: 0.55,
   },
   {
@@ -110,23 +121,15 @@ export const DESIGN_PRESETS = [
     name: 'Atelier Paper',
     themeId: 'minimal-paper',
     layout: 'editorial',
-    fontFamily: 'Manrope',
+    fontFamily: 'Georgia',
     decorationIntensity: 0.35,
   },
   {
     id: 'orbit',
-    name: 'Orbit Study',
-    themeId: 'cosmic-focus',
+    name: 'Morning Study',
+    themeId: 'soft-gradient',
     layout: 'spacious',
-    fontFamily: 'Space Grotesk',
-    decorationIntensity: 0.8,
-  },
-  {
-    id: 'press',
-    name: 'Press Room',
-    themeId: 'monochrome-editorial',
-    layout: 'top-aligned',
-    fontFamily: 'DM Sans',
-    decorationIntensity: 0.45,
+    fontFamily: 'Segoe UI',
+    decorationIntensity: 0.65,
   },
 ]

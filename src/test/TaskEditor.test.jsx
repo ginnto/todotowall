@@ -74,8 +74,8 @@ describe('ThemeGallery and customization', () => {
       </>,
     )
 
-    await user.click(screen.getByRole('button', { name: /Cosmic Focus/i }))
-    expect(onSelect).toHaveBeenCalledWith('cosmic-focus')
+    await user.click(screen.getByRole('button', { name: /Morning Glow/i }))
+    expect(onSelect).toHaveBeenCalledWith('soft-gradient')
     await user.clear(screen.getByLabelText('Title'))
     await user.type(screen.getByLabelText('Title'), 'X')
     expect(onChange).toHaveBeenCalled()

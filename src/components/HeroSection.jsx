@@ -1,7 +1,7 @@
 import { ArrowDownRight, Sparkles } from 'lucide-react'
 import { BRAND } from '../constants.js'
 
-export default function HeroSection({ previewCanvasRef }) {
+export default function HeroSection({ previewCanvasRef, aspectRatio }) {
   return (
     <section className="hero" id="top">
       <div className="hero-copy">
@@ -22,7 +22,7 @@ export default function HeroSection({ previewCanvasRef }) {
         </div>
       </div>
       <div className="hero-visual">
-        <div className="hero-device">
+        <div className="hero-device" style={{ aspectRatio }}>
           <canvas ref={previewCanvasRef} className="hero-canvas" aria-label="Sample wallpaper preview" />
         </div>
         <p className="hero-note">

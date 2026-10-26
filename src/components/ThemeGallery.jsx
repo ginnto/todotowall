@@ -1,21 +1,24 @@
-import { THEMES } from '../themes/themeRegistry.js'
+import { FEATURED_THEME_IDS } from '../constants.js'
+import { getTheme } from '../themes/themeRegistry.js'
 
 export default function ThemeGallery({ selectedId, onSelect }) {
+  const featuredThemes = FEATURED_THEME_IDS.map(getTheme)
+
   return (
     <section className="panel" id="themes" aria-labelledby="theme-gallery-title">
       <div className="panel-head">
         <p className="section-kicker">Themes</p>
-        <h2 id="theme-gallery-title">Visual identities</h2>
-        <p className="panel-help">Each style has its own composition, type, and decoration — not just a color swap.</p>
+        <h2 id="theme-gallery-title">Three signature designs</h2>
+        <p className="panel-help">Choose a complete look, then make it yours.</p>
       </div>
       <ul className="theme-grid">
-        {THEMES.map((theme) => {
+        {featuredThemes.map((theme) => {
           const selected = theme.id === selectedId
           return (
             <li key={theme.id}>
               <button
                 type="button"
-                className={`theme-card ${selected ? 'is-selected' : ''}`}
+                className={`theme-card theme-card-${theme.id} ${selected ? 'is-selected' : ''}`}
                 onClick={() => onSelect(theme.id)}
                 aria-pressed={selected}
               >

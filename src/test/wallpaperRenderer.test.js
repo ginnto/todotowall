@@ -25,6 +25,7 @@ describe('theme and layout helpers', () => {
   it('returns preset and custom dimensions with a stable aspect ratio', () => {
     expect(getOutputSize({ dimensionId: 'standard' })).toEqual({ width: 1080, height: 2400 })
     expect(getOutputSize({ dimensionId: 'fullhd' })).toEqual({ width: 1080, height: 1920 })
+    expect(getOutputSize({ dimensionId: 'desktop' })).toEqual({ width: 1920, height: 1080 })
     const custom = getOutputSize({ dimensionId: 'custom', customWidth: 900, customHeight: 1800 })
     expect(getAspectRatio({ dimensionId: 'custom', customWidth: 900, customHeight: 1800 })).toBe(custom.width / custom.height)
   })

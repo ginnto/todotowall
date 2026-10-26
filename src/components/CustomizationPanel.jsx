@@ -1,4 +1,4 @@
-import { RotateCcw, Shuffle, Wand2 } from 'lucide-react'
+import { ImagePlus, RotateCcw, Shuffle, Wand2, X } from 'lucide-react'
 import {
   ACCENT_SWATCHES,
   COMPLETED_STYLES,
@@ -25,7 +25,14 @@ export default function CustomizationPanel({
   onSurprise,
   onCycleTheme,
   onApplyPreset,
+  onImageUpload = () => {},
 }) {
+  const handleImageUpload = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (file) onImageUpload(file)
+  }
+
   return (
     <section className="panel" aria-labelledby="customize-title">
       <div className="panel-head">
@@ -46,6 +53,71 @@ export default function CustomizationPanel({
           Reset customization
         </button>
       </div>
+
+      <section className="photo-customizer" aria-labelledby="photo-customizer-title">
+        <div className="photo-customizer-copy">
+          <span className="photo-icon" aria-hidden="true"><ImagePlus size={18} /></span>
+          <div>
+            <h3 id="photo-customizer-title">Make it personal</h3>
+            <p>Add your own photo as the wallpaper background.</p>
+          </div>
+        </div>
+        <Field label="Choose a photo" htmlFor="wp-image">
+          <input id="wp-image" type="file" accept="image/*" onChange={handleImageUpload} />
+        </Field>
+        {settings.backgroundImage ? (
+          <>
+            <div className="image-preview-row">
+              <img src={settings.backgroundImage} alt="Selected wallpaper background" />
+              <button
+                type="button"
+                className="button ghost"
+                onClick={() => onChange({ backgroundImage: '' })}
+              >
+                <X size={16} aria-hidden="true" />
+                Remove photo
+              </button>
+            </div>
+            <Field label={`Photo shading (${Math.round(settings.imageOverlay * 100)}%)`} htmlFor="wp-image-overlay">
+              <input
+                id="wp-image-overlay"
+                type="range"
+                min="0"
+                max="0.8"
+                step="0.01"
+                value={settings.imageOverlay}
+                onChange={(event) => onChange({ imageOverlay: Number(event.target.value) })}
+              />
+            </Field>
+            <div className="inline-fields">
+              <Field label="Photo position · horizontal" htmlFor="wp-image-x">
+                <input
+                  id="wp-image-x"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={settings.imagePositionX}
+                  onChange={(event) => onChange({ imagePositionX: Number(event.target.value) })}
+                />
+              </Field>
+              <Field label="Photo position · vertical" htmlFor="wp-image-y">
+                <input
+                  id="wp-image-y"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={settings.imagePositionY}
+                  onChange={(event) => onChange({ imagePositionY: Number(event.target.value) })}
+                />
+              </Field>
+            </div>
+          </>
+        ) : (
+          <p className="field-hint">Your photo stays on this device. You can adjust its crop and shading after adding it.</p>
+        )}
+      </section>
 
       <details className="fold" open>
         <summary>Content</summary>
@@ -81,7 +153,7 @@ export default function CustomizationPanel({
         </Field>
       </details>
 
-      <details className="fold" open>
+      <details className="fold">
         <summary>Visual</summary>
         <Field label="Font" htmlFor="wp-font">
           <select id="wp-font" value={settings.fontFamily} onChange={(event) => onChange({ fontFamily: event.target.value })}>
@@ -157,13 +229,14 @@ export default function CustomizationPanel({
             ))}
           </select>
         </Field>
+        <p className="field-hint">Use Phone or Desktop above the preview for a quick size switch. Choose Custom here for exact dimensions.</p>
         {settings.dimensionId === 'custom' ? (
           <div className="inline-fields">
             <Field label="Width" htmlFor="wp-width">
-              <input id="wp-width" type="number" min="720" max="2160" value={settings.customWidth} onChange={(event) => onChange({ customWidth: Number(event.target.value) })} />
+              <input id="wp-width" type="number" min="720" max="3840" value={settings.customWidth} onChange={(event) => onChange({ customWidth: Number(event.target.value) })} />
             </Field>
             <Field label="Height" htmlFor="wp-height">
-              <input id="wp-height" type="number" min="1280" max="3840" value={settings.customHeight} onChange={(event) => onChange({ customHeight: Number(event.target.value) })} />
+              <input id="wp-height" type="number" min="720" max="3840" value={settings.customHeight} onChange={(event) => onChange({ customHeight: Number(event.target.value) })} />
             </Field>
           </div>
         ) : null}

@@ -13,6 +13,8 @@ describe('App integration', () => {
     await user.keyboard('{Enter}')
     expect(await screen.findByText('Compose tonight')).toBeInTheDocument()
     expect(screen.getByLabelText('Mobile wallpaper preview')).toBeInTheDocument()
+    expect(screen.getByLabelText('Choose a photo')).toBeInTheDocument()
+    expect(document.querySelectorAll('#themes .theme-card')).toHaveLength(3)
   })
 
   it('changes theme without losing the task list', async () => {
@@ -20,9 +22,9 @@ describe('App integration', () => {
     render(<App />)
     await user.type(screen.getByLabelText('Add a task'), 'Keep this task')
     await user.keyboard('{Enter}')
-    await user.click(screen.getAllByRole('button', { name: /Minimal Paper/i })[0])
+    await user.click(screen.getAllByRole('button', { name: /Atelier Paper/i })[0])
     expect(screen.getByText('Keep this task')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /Minimal Paper/i })[0]).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByRole('button', { name: /Atelier Paper/i })[0]).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('updates the wallpaper title from customization', async () => {
@@ -32,5 +34,14 @@ describe('App integration', () => {
     await user.clear(title)
     await user.type(title, 'MORNING LIST')
     await waitFor(() => expect(title).toHaveValue('MORNING LIST'))
+  })
+
+  it('switches the live preview to desktop dimensions', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: /Desktop landscape 1920 by 1080/i }))
+    expect(screen.getByLabelText('Desktop wallpaper preview')).toBeInTheDocument()
+    expect(screen.getByText(/1920×1080/)).toBeInTheDocument()
   })
 })

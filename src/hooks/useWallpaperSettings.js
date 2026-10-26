@@ -48,6 +48,10 @@ export function useWallpaperSettings() {
       accentColor: '',
       backgroundColor: '',
       useCustomBackground: false,
+      backgroundImage: '',
+      imageOverlay: DEFAULT_SETTINGS.imageOverlay,
+      imagePositionX: DEFAULT_SETTINGS.imagePositionX,
+      imagePositionY: DEFAULT_SETTINGS.imagePositionY,
       fontFamily: '',
       fontScale: 1,
       taskSpacing: 1,
@@ -76,9 +80,9 @@ export function useWallpaperSettings() {
   }, [applyTheme])
 
   const surpriseMe = useCallback(() => {
-    const themes = ['midnight-terminal', 'cosmic-focus', 'minimal-paper', 'neon-grid', 'soft-gradient', 'brutalist-focus', 'nature-zen', 'blueprint', 'retro-computing', 'monochrome-editorial']
+    const themes = ['minimal-paper', 'soft-gradient', 'midnight-terminal']
     const layouts = ['compact', 'spacious', 'editorial', 'top-aligned']
-    const fonts = ['Inter', 'Manrope', 'Space Grotesk', 'DM Sans', 'JetBrains Mono', 'IBM Plex Mono']
+    const fonts = ['system-ui', 'Georgia', 'Segoe UI', 'Manrope', 'Space Grotesk', 'JetBrains Mono']
     const quotes = ['Make the next hour count.', 'Quiet progress is still progress.', 'Stay close to what matters.']
     const themeId = themes[Math.floor(Math.random() * themes.length)]
     applyTheme(themeId, {
@@ -90,7 +94,7 @@ export function useWallpaperSettings() {
   }, [applyTheme])
 
   const cycleTheme = useCallback((direction = 1) => {
-    const order = ['midnight-terminal', 'cosmic-focus', 'minimal-paper', 'neon-grid', 'soft-gradient', 'brutalist-focus', 'nature-zen', 'blueprint', 'retro-computing', 'monochrome-editorial']
+    const order = ['minimal-paper', 'soft-gradient', 'midnight-terminal']
     const index = order.indexOf(resolved.themeId)
     const next = order[(index + direction + order.length) % order.length]
     applyTheme(next)

@@ -121,7 +121,6 @@
 
 .hero-device {
   width: min(280px, 70vw);
-  aspect-ratio: 1080 / 2400;
   border-radius: 32px;
   overflow: hidden;
   border: 8px solid #111;

@@ -14,6 +14,24 @@ import {
 } from './canvasUtils.js'
 import { computeLayout, getOutputSize } from './wallpaperLayouts.js'
 
+const backgroundImageCache = new Map()
+
+function loadBackgroundImage(source) {
+  if (backgroundImageCache.has(source)) return backgroundImageCache.get(source)
+
+  const imagePromise = new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('The saved background image could not be loaded. Please choose it again.'))
+    image.src = source
+  }).catch((error) => {
+    backgroundImageCache.delete(source)
+    throw error
+  })
+  backgroundImageCache.set(source, imagePromise)
+  return imagePromise
+}
+
 function formatDisplayDate(value) {
   if (!value) return ''
   const date = new Date(`${value}T00:00:00`)
@@ -25,10 +43,25 @@ function formatDisplayDate(value) {
   })
 }
 
-function drawBackground(ctx, width, height, theme) {
+function drawBackground(ctx, width, height, theme, image, settings) {
   const stops = theme.background.map((color, index, list) => [index / Math.max(list.length - 1, 1), color])
   ctx.fillStyle = createLinearGradient(ctx, 0, 0, width, height, stops, theme.backgroundAngle)
   ctx.fillRect(0, 0, width, height)
+  if (image) {
+    const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight)
+    const imageWidth = image.naturalWidth * scale
+    const imageHeight = image.naturalHeight * scale
+    const imagePositionX = Number(settings.imagePositionX)
+    const imagePositionY = Number(settings.imagePositionY)
+    const positionX = Number.isFinite(imagePositionX) ? Math.max(0, Math.min(1, imagePositionX)) : 0.5
+    const positionY = Number.isFinite(imagePositionY) ? Math.max(0, Math.min(1, imagePositionY)) : 0.5
+    ctx.drawImage(image, (width - imageWidth) * positionX, (height - imageHeight) * positionY, imageWidth, imageHeight)
+    ctx.save()
+    ctx.globalAlpha = Math.max(0, Math.min(0.8, Number(settings.imageOverlay) || 0))
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, width, height)
+    ctx.restore()
+  }
 }
 
 function drawNoise(ctx, width, height, intensity, seed, color) {
@@ -62,16 +95,34 @@ function drawDecorations(ctx, width, height, theme, intensity) {
   ctx.save()
   ctx.globalAlpha = amount
 
-  if (theme.decoration === 'terminal') {
-    ctx.strokeStyle = hexToRgba(theme.accent, 0.18)
-    ctx.lineWidth = 1
-    ctx.strokeRect(48, 48, width - 96, height - 96)
-    ctx.fillStyle = hexToRgba(theme.accent, 0.7)
-    ctx.font = `500 ${Math.max(14, width * 0.016)}px "${theme.fontFamily}", monospace`
-    ctx.fillText('> taskframe --lockscreen', 72, height - 80)
-    for (let y = 0; y < height; y += 4) {
-      ctx.fillStyle = hexToRgba('#000000', 0.08)
-      ctx.fillRect(0, y, width, 1)
+  if (theme.decoration === 'night-editorial') {
+    const bandWidth = width * 0.28
+    const glow = ctx.createRadialGradient(width * 0.84, height * 0.12, 0, width * 0.84, height * 0.12, width * 0.48)
+    glow.addColorStop(0, hexToRgba(theme.accent, 0.14 * amount))
+    glow.addColorStop(1, hexToRgba(theme.accent, 0))
+    ctx.fillStyle = glow
+    ctx.fillRect(width * 0.35, 0, width * 0.65, height * 0.58)
+    ctx.fillStyle = hexToRgba(theme.accent, 0.8)
+    ctx.fillRect(width * 0.1, height * 0.105, bandWidth, Math.max(4, width * 0.006))
+    ctx.fillStyle = hexToRgba(theme.accent, 0.12)
+    ctx.beginPath()
+    ctx.arc(width * 0.9, height * 0.82, width * 0.24, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = hexToRgba(theme.accent, 0.22)
+    ctx.lineWidth = Math.max(1, width * 0.0014)
+    ctx.beginPath()
+    ctx.ellipse(width * 0.84, height * 0.25, width * 0.17, height * 0.09, -0.55, Math.PI * 0.08, Math.PI * 1.75)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.ellipse(width * 0.84, height * 0.25, width * 0.22, height * 0.12, -0.55, Math.PI * 0.08, Math.PI * 1.75)
+    ctx.stroke()
+    for (let i = 0; i < 18; i += 1) {
+      const x = width * (0.62 + random() * 0.34)
+      const y = height * (0.12 + random() * 0.26)
+      ctx.fillStyle = hexToRgba('#FFFFFF', 0.3 + random() * 0.5)
+      ctx.beginPath()
+      ctx.arc(x, y, Math.max(1.5, width * 0.0015), 0, Math.PI * 2)
+      ctx.fill()
     }
   }
 
@@ -97,12 +148,31 @@ function drawDecorations(ctx, width, height, theme, intensity) {
 
   if (theme.decoration === 'paper') {
     drawNoise(ctx, width, height, amount, seedFromString(theme.id), theme.text)
-    ctx.strokeStyle = hexToRgba(theme.divider, 1)
-    ctx.lineWidth = 1
+    ctx.strokeStyle = hexToRgba(theme.accent, 0.55)
+    ctx.lineWidth = Math.max(2, width * 0.003)
     ctx.beginPath()
-    ctx.moveTo(width * 0.12, height * 0.11)
-    ctx.lineTo(width * 0.88, height * 0.11)
+    ctx.moveTo(width * 0.14, height * 0.105)
+    ctx.lineTo(width * 0.28, height * 0.105)
     ctx.stroke()
+    ctx.strokeStyle = hexToRgba(theme.divider, 0.7)
+    ctx.lineWidth = 1
+    ctx.strokeRect(width * 0.055, height * 0.045, width * 0.89, height * 0.91)
+    const branchX = width * 0.88
+    const branchY = height * 0.62
+    ctx.strokeStyle = hexToRgba(theme.accent, 0.62)
+    ctx.lineWidth = Math.max(2, width * 0.002)
+    ctx.beginPath()
+    ctx.moveTo(branchX, branchY + height * 0.12)
+    ctx.bezierCurveTo(branchX - width * 0.08, branchY, branchX + width * 0.03, branchY - height * 0.13, branchX - width * 0.015, branchY - height * 0.27)
+    ctx.stroke()
+    for (let i = 0; i < 5; i += 1) {
+      const leafY = branchY - height * (0.035 + i * 0.047)
+      const side = i % 2 === 0 ? -1 : 1
+      const leafX = branchX + (i % 2 === 0 ? -width * 0.025 : -width * 0.04)
+      ctx.beginPath()
+      ctx.ellipse(leafX + side * width * 0.022, leafY, width * 0.022, height * 0.013, side * 0.62, 0, Math.PI * 2)
+      ctx.stroke()
+    }
   }
 
   if (theme.decoration === 'grid') {
@@ -126,13 +196,43 @@ function drawDecorations(ctx, width, height, theme, intensity) {
   }
 
   if (theme.decoration === 'gradient') {
-    ctx.fillStyle = hexToRgba('#FFFFFF', 0.18)
+    const sunRadius = Math.min(width, height) * 0.14
+    const sunX = width * 0.82
+    const sunY = height * 0.235
+    const glow = ctx.createRadialGradient(width * 0.82, height * 0.14, 0, width * 0.82, height * 0.14, width * 0.55)
+    glow.addColorStop(0, hexToRgba('#FFFFFF', 0.42 * amount))
+    glow.addColorStop(1, hexToRgba('#FFFFFF', 0))
+    ctx.fillStyle = glow
+    ctx.fillRect(width * 0.25, 0, width * 0.75, height * 0.62)
+    ctx.fillStyle = hexToRgba('#FFF8E7', 0.62 * amount)
     ctx.beginPath()
-    ctx.arc(width * 0.85, height * 0.08, width * 0.28, 0, Math.PI * 2)
+    ctx.arc(sunX, sunY, sunRadius, Math.PI, Math.PI * 2)
     ctx.fill()
-    ctx.fillStyle = hexToRgba(theme.accent, 0.12)
+    ctx.strokeStyle = hexToRgba(theme.accent, 0.58)
+    ctx.lineWidth = Math.max(2, width * 0.002)
+    for (let i = 0; i < 5; i += 1) {
+      const rayY = sunY - sunRadius * (0.72 - i * 0.27)
+      ctx.beginPath()
+      ctx.moveTo(sunX - sunRadius * 0.8, rayY)
+      ctx.lineTo(sunX + sunRadius * 0.8, rayY)
+      ctx.stroke()
+    }
+    ctx.fillStyle = hexToRgba('#FFFFFF', 0.16 * amount)
     ctx.beginPath()
-    ctx.arc(width * 0.1, height * 0.88, width * 0.32, 0, Math.PI * 2)
+    ctx.ellipse(width * 0.9, height * 0.16, width * 0.31, height * 0.14, -0.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = hexToRgba(theme.accent, 0.12 * amount)
+    ctx.beginPath()
+    ctx.ellipse(width * 0.1, height * 0.9, width * 0.42, height * 0.18, -0.3, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = hexToRgba('#8F9CCB', 0.12 * amount)
+    ctx.beginPath()
+    ctx.moveTo(0, height * 0.9)
+    ctx.bezierCurveTo(width * 0.22, height * 0.82, width * 0.34, height * 0.97, width * 0.62, height * 0.91)
+    ctx.bezierCurveTo(width * 0.8, height * 0.87, width * 0.9, height * 0.9, width, height * 0.83)
+    ctx.lineTo(width, height)
+    ctx.lineTo(0, height)
+    ctx.closePath()
     ctx.fill()
   }
 
@@ -394,6 +494,9 @@ export async function renderWallpaper(canvas, payload, options = {}) {
   }
 
   await ensureFontsLoaded(FONT_LOAD_SPECS)
+  const backgroundImage = settings.backgroundImage
+    ? await loadBackgroundImage(settings.backgroundImage)
+    : null
 
   canvas.width = Math.round(width * pixelRatio)
   canvas.height = Math.round(height * pixelRatio)
@@ -417,7 +520,7 @@ export async function renderWallpaper(canvas, payload, options = {}) {
   })
   const progress = getWallpaperProgress(payload.tasks || [])
 
-  drawBackground(ctx, width, height, theme)
+  drawBackground(ctx, width, height, theme, backgroundImage, settings)
   drawDecorations(ctx, width, height, theme, settings.decorationIntensity)
   drawHeader(ctx, theme, layout, settings, progress)
   drawProgress(ctx, theme, layout, settings, progress)

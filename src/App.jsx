@@ -14,6 +14,7 @@ import { STORAGE_KEYS } from './constants.js'
 import { createOffscreenCanvas, renderWallpaper } from './utils/wallpaperRenderer.js'
 import { getOutputSize } from './utils/wallpaperLayouts.js'
 import { downloadCanvasPng, formatWallpaperFilename } from './utils/downloadUtils.js'
+import { prepareBackgroundImage } from './utils/imageUtils.js'
 import './styles/global.css'
 import './styles/layout.css'
 import './styles/components.css'
@@ -42,6 +43,8 @@ function App() {
   const [downloading, setDownloading] = useState(false)
   const payload = useMemo(() => ({ tasks, settings }), [tasks, settings])
   const outputSize = getOutputSize(settings)
+  const aspectRatio = `${outputSize.width} / ${outputSize.height}`
+  const isDesktop = settings.dimensionId === 'desktop' || outputSize.width > outputSize.height
 
   const showToast = useCallback((message, tone = 'success') => {
     setToast({ message, tone, id: Date.now() })
@@ -123,6 +126,16 @@ function App() {
     showToast('Saved data cleared.')
   }
 
+  const handleImageUpload = async (file) => {
+    try {
+      const backgroundImage = await prepareBackgroundImage(file)
+      updateSettings({ backgroundImage })
+      showToast('Photo background added.')
+    } catch (error) {
+      showToast(error.message || 'The image could not be added.', 'error')
+    }
+  }
+
   const goToStudio = () => {
     document.getElementById('studio')?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -135,12 +148,12 @@ function App() {
         onCreate={goToStudio}
       />
       <main>
-        <HeroSection previewCanvasRef={heroRef} />
+        <HeroSection previewCanvasRef={heroRef} aspectRatio={aspectRatio} />
         <section className="studio" id="studio">
           <div className="studio-copy">
             <p className="section-kicker">Studio</p>
             <h2>Compose the frame</h2>
-            <p>Edit the list on the left. The phone on the right is the wallpaper you will download.</p>
+            <p>Edit your list and see the wallpaper update as you customize it.</p>
           </div>
           <div className="studio-grid">
             <div className="studio-controls">
@@ -164,18 +177,21 @@ function App() {
                 onSurprise={surpriseMe}
                 onCycleTheme={cycleTheme}
                 onApplyPreset={applyPreset}
+                onImageUpload={handleImageUpload}
               />
             </div>
             <aside className="studio-preview">
               <WallpaperPreview
                 canvasRef={previewRef}
-                aspectRatio={`${outputSize.width} / ${outputSize.height}`}
+                aspectRatio={aspectRatio}
                 status={status}
                 warning={warning}
                 empty={tasks.length === 0}
+                isDesktop={isDesktop}
               />
               <ExportControls
                 settings={settings}
+                onSelectSize={(dimensionId) => updateSettings({ dimensionId })}
                 onDownload={handleDownload}
                 downloading={downloading}
                 onResetData={handleResetData}
@@ -205,6 +221,6 @@ function App() {
   )
 }
 
-const BRAND_FOOTER = 'TASKFRAME — a local design studio for daily lists. No account. No upload.'
+const BRAND_FOOTER = 'TASKFRAME — a local design studio for daily lists. Your photos and tasks stay on this device.'
 
 export default App

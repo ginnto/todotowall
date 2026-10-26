@@ -1,6 +1,6 @@
-export default function DeviceFrame({ children, aspectRatio, label }) {
+export default function DeviceFrame({ children, aspectRatio, label, isDesktop = false }) {
   return (
-    <figure className="device-frame" style={{ aspectRatio }} aria-label={label}>
+    <figure className={`device-frame ${isDesktop ? 'is-desktop' : ''}`} style={{ aspectRatio }} aria-label={label}>
       <div className="device-bezel">
         <span className="device-notch" aria-hidden="true" />
         {children}
