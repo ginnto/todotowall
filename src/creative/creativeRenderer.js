@@ -1,5 +1,6 @@
 import { createLinearGradient, fillRoundRect, setCanvasFont, wrapText } from '../utils/canvasUtils.js'
 import { CREATIVE_FONTS, fitCreativeDimensions } from './creativeRegistry.js'
+import { ensureGoogleFontsLoaded } from '../fonts/fontRegistry.js'
 
 const imageCache = new Map()
 
@@ -20,10 +21,13 @@ function loadImage(source) {
 
 async function loadFonts(layers) {
   if (!document.fonts) return
-  const families = [...new Set(layers.map((layer) => layer.fontId))]
-  await Promise.all(families.map(async (family) => {
+  const fonts = [...new Set(layers.map((layer) => layer.fontId))]
+    .map((fontId) => CREATIVE_FONTS.find((font) => font.id === fontId))
+    .filter(Boolean)
+  await ensureGoogleFontsLoaded(fonts.map((font) => font.id))
+  await Promise.all(fonts.map(async (font) => {
     try {
-      await document.fonts.load(`600 48px "${family}"`)
+      await document.fonts.load(`${font.weight} 48px "${font.family}"`)
     } catch {
       // The registry fallback is used if a web font is unavailable.
     }
@@ -113,7 +117,7 @@ function drawLayer(ctx, project, layer, selected) {
   ctx.rotate(rotation)
   const opacity = Number(layer.opacity)
   ctx.globalAlpha = Math.max(0, Math.min(1, Number.isFinite(opacity) ? opacity : 1))
-  setCanvasFont(ctx, { family: font.family, fallback: font.fallback, weight: 600, size: fontSize })
+  setCanvasFont(ctx, { family: font.family, fallback: font.fallback, weight: font.weight, size: fontSize })
   ctx.textBaseline = 'middle'
 
   if (Number(layer.backgroundOpacity) > 0) {
@@ -165,5 +169,5 @@ export async function renderCreativeProject(canvas, project, options = {}) {
 }
 
 export function getCreativeFontFamily(fontId) {
-  return fontFor({ fontId }).family
+  return fontFor({ fontId }).stack
 }

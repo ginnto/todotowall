@@ -20,12 +20,18 @@ npm run lint
 
 The creative tools share a normalized text-layer model and renderer. Text placement uses normalized canvas coordinates, so it remains in proportion when the output format changes. Uploaded images are resized and encoded locally using the existing image utility. The task wallpaper renderer and its localStorage keys remain independent from the creative editors.
 
+## Font collection
+
+The shared font registry in `src/fonts/fontRegistry.js` includes 107 free Google Fonts plus four local system choices. The collection is grouped into Handwriting, Calligraphy, Cozy, Minimal, Professional, Editorial, and Retro styles. Google font stylesheets are requested only for the chosen families; rendering waits for the selected font and falls back gracefully if it cannot load. Add or rename fonts in the registry rather than duplicating font lists in editor controls.
+
 ## Source structure
 
 ```text
 src/
   App.jsx                     Selects between existing task tool and creative tools
   constants.js                Task wallpaper defaults, limits, and theme options
+  fonts/
+    fontRegistry.js           Shared aesthetic font collection and font loading
   creative/
     creativeRegistry.js       Creative formats, fonts, limits, and layer defaults
     creativeRenderer.js       Canvas 2D rendering for the new editors

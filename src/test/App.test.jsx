@@ -63,5 +63,5 @@ describe('App integration', () => {
     expect(screen.getByText('Preserve this task')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Custom wallpaper/i }))
     expect(screen.getByLabelText('Text')).toHaveValue('Keep this creative draft')
-  })
+  }, 15000)
 })

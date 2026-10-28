@@ -1,3 +1,5 @@
+import { FONT_LOAD_SPECS, FONT_OPTIONS } from './fonts/fontRegistry.js'
+
 export const BRAND = {
   name: 'TASKFRAME',
   tagline: 'Turn your plans into your perspective.',
@@ -24,20 +26,7 @@ export const DIMENSION_PRESETS = [
 
 export const FEATURED_THEME_IDS = ['minimal-paper', 'soft-gradient', 'midnight-terminal']
 
-export const FONT_OPTIONS = [
-  { id: 'system-ui', label: 'Modern Sans', stack: 'system-ui, "Segoe UI", sans-serif' },
-  { id: 'Georgia', label: 'Editorial Serif', stack: 'Georgia, "Times New Roman", serif' },
-  { id: 'Segoe UI', label: 'Clean Rounded', stack: '"Segoe UI", system-ui, sans-serif' },
-  { id: 'Arial', label: 'Classic Sans', stack: 'Arial, sans-serif' },
-  { id: 'Manrope', label: 'Manrope', stack: 'Manrope, system-ui, sans-serif' },
-  { id: 'Space Grotesk', label: 'Space Grotesk', stack: '"Space Grotesk", system-ui, sans-serif' },
-  { id: 'JetBrains Mono', label: 'JetBrains Mono', stack: '"JetBrains Mono", ui-monospace, monospace' },
-  { id: 'IBM Plex Mono', label: 'IBM Plex Mono', stack: '"IBM Plex Mono", ui-monospace, monospace' },
-]
-
-export const FONT_LOAD_SPECS = FONT_OPTIONS
-  .filter((font) => !['system-ui', 'Georgia', 'Segoe UI', 'Arial'].includes(font.id))
-  .map((font) => `600 48px "${font.id}"`)
+export { FONT_OPTIONS, FONT_LOAD_SPECS }
 
 export const LAYOUT_OPTIONS = [
   { id: 'compact', label: 'Compact checklist' },

@@ -1,3 +1,5 @@
+import { FONT_CATEGORIES, FONT_REGISTRY } from '../fonts/fontRegistry.js'
+
 export const CREATIVE_FORMATS = {
   wallpaper: [
     { id: 'phone', label: 'Phone wallpaper', width: 1080, height: 2400 },
@@ -12,16 +14,8 @@ export const CREATIVE_FORMATS = {
   ],
 }
 
-export const CREATIVE_FONTS = [
-  { id: 'system-ui', label: 'Modern Sans', family: 'system-ui', fallback: '"Segoe UI", sans-serif' },
-  { id: 'Inter', label: 'Inter', family: 'Inter', fallback: 'system-ui, sans-serif' },
-  { id: 'Georgia', label: 'Editorial Serif', family: 'Georgia', fallback: '"Times New Roman", serif' },
-  { id: 'Manrope', label: 'Manrope', family: 'Manrope', fallback: 'system-ui, sans-serif' },
-  { id: 'Space Grotesk', label: 'Space Grotesk', family: 'Space Grotesk', fallback: 'system-ui, sans-serif' },
-  { id: 'DM Sans', label: 'DM Sans', family: 'DM Sans', fallback: 'system-ui, sans-serif' },
-  { id: 'JetBrains Mono', label: 'JetBrains Mono', family: 'JetBrains Mono', fallback: 'ui-monospace, monospace' },
-  { id: 'IBM Plex Mono', label: 'IBM Plex Mono', family: 'IBM Plex Mono', fallback: 'ui-monospace, monospace' },
-]
+export const CREATIVE_FONTS = FONT_REGISTRY
+export { FONT_CATEGORIES }
 
 export const MAX_CREATIVE_DIMENSION = 3840
 export const MAX_CREATIVE_PIXELS = 8_294_400

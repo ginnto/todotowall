@@ -96,3 +96,12 @@ if (!URL.createObjectURL) {
   URL.createObjectURL = vi.fn(() => 'blob:taskframe-test')
   URL.revokeObjectURL = vi.fn()
 }
+
+const appendHeadChild = document.head.appendChild.bind(document.head)
+document.head.appendChild = (element) => {
+  const result = appendHeadChild(element)
+  if (element.tagName === 'LINK' && element.href.includes('fonts.googleapis.com')) {
+    queueMicrotask(() => element.onload?.())
+  }
+  return result
+}

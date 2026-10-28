@@ -8,6 +8,7 @@ import {
   FONT_OPTIONS,
   LAYOUT_OPTIONS,
 } from '../constants.js'
+import { FONT_CATEGORIES } from '../fonts/fontRegistry.js'
 
 function Field({ label, htmlFor, children }) {
   return (
@@ -158,8 +159,12 @@ export default function CustomizationPanel({
         <Field label="Font" htmlFor="wp-font">
           <select id="wp-font" value={settings.fontFamily} onChange={(event) => onChange({ fontFamily: event.target.value })}>
             <option value="">Theme default</option>
-            {FONT_OPTIONS.map((font) => (
-              <option key={font.id} value={font.id}>{font.label}</option>
+            {FONT_CATEGORIES.map((category) => (
+              <optgroup key={category} label={category}>
+                {FONT_OPTIONS.filter((font) => font.category === category).map((font) => (
+                  <option key={font.id} value={font.id}>{font.label}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </Field>

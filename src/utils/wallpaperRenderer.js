@@ -1,5 +1,5 @@
-import { FONT_LOAD_SPECS } from '../constants.js'
 import { getTheme, resolveTheme } from '../themes/themeRegistry.js'
+import { ensureGoogleFontsLoaded, FONT_REGISTRY } from '../fonts/fontRegistry.js'
 import {
   createLinearGradient,
   drawWrappedText,
@@ -493,7 +493,12 @@ export async function renderWallpaper(canvas, payload, options = {}) {
     throw new Error('A canvas is required to render the wallpaper.')
   }
 
-  await ensureFontsLoaded(FONT_LOAD_SPECS)
+  const theme = resolveTheme(getTheme(settings.themeId), settings)
+  const selectedFont = FONT_REGISTRY.find((font) => font.id === theme.fontFamily)
+  if (selectedFont?.source === 'google') {
+    await ensureGoogleFontsLoaded([selectedFont.id])
+    await ensureFontsLoaded([`${selectedFont.weight} 48px "${selectedFont.family}"`])
+  }
   const backgroundImage = settings.backgroundImage
     ? await loadBackgroundImage(settings.backgroundImage)
     : null
@@ -510,7 +515,6 @@ export async function renderWallpaper(canvas, payload, options = {}) {
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
 
-  const theme = resolveTheme(getTheme(settings.themeId), settings)
   const layout = computeLayout({
     width,
     height,

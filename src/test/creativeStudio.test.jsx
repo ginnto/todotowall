@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import CreativeStudio from '../components/CreativeStudio.jsx'
 import {
+  CREATIVE_FONTS,
+  FONT_CATEGORIES,
   CREATIVE_FORMATS,
   fitCreativeDimensions,
   MAX_CREATIVE_PIXELS,
@@ -10,6 +12,7 @@ import {
 import { renderCreativeProject } from '../creative/creativeRenderer.js'
 import { useCreativeProject } from '../hooks/useCreativeProject.js'
 import { prepareBackgroundImage } from '../utils/imageUtils.js'
+import { ensureGoogleFontsLoaded } from '../fonts/fontRegistry.js'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -17,6 +20,28 @@ afterEach(() => {
 })
 
 describe('creative format registry and project state', () => {
+  it('offers a large free-font collection organized by aesthetic', () => {
+    expect(CREATIVE_FONTS.length).toBeGreaterThanOrEqual(110)
+    expect(FONT_CATEGORIES).toEqual([
+      'Handwriting',
+      'Calligraphy',
+      'Cozy',
+      'Minimal',
+      'Professional',
+      'Editorial',
+      'Retro',
+    ])
+    expect(CREATIVE_FONTS.filter((font) => font.category === 'Calligraphy')).toHaveLength(16)
+  })
+
+  it('loads a selected Google font before its canvas is rendered', async () => {
+    await expect(ensureGoogleFontsLoaded(['Great Vibes', 'unknown-local-font'])).resolves.toBeUndefined()
+    const stylesheet = [...document.head.querySelectorAll('link[rel="stylesheet"]')]
+      .find((link) => link.href.includes('fonts.googleapis.com') && link.href.includes('Great+Vibes'))
+    expect(stylesheet).toBeTruthy()
+    expect(stylesheet.href).toContain('wght@400')
+  })
+
   it('centralizes the wallpaper and social output presets', () => {
     expect(CREATIVE_FORMATS.wallpaper.map(({ id, width, height }) => [id, width, height])).toEqual([
       ['phone', 1080, 2400],
@@ -188,6 +213,8 @@ describe('creative renderer and editor', () => {
     expect(screen.getByRole('heading', { name: 'Instagram post & story creator' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Add text/i }))
     expect(screen.getByLabelText('Text')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Great Vibes/i })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Calligraphy' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Move text up' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Move text right' }))
     expect(screen.getByLabelText('Horizontal position')).toHaveValue('0.51')

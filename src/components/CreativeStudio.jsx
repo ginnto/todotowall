@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, Plus, Trash2 } from 'lucide-react'
-import { CREATIVE_FORMATS, CREATIVE_FONTS, MAX_TEXT_LAYERS } from '../creative/creativeRegistry.js'
-import { renderCreativeProject } from '../creative/creativeRenderer.js'
+import { CREATIVE_FORMATS, CREATIVE_FONTS, FONT_CATEGORIES, MAX_TEXT_LAYERS } from '../creative/creativeRegistry.js'
+import { getCreativeFontFamily, renderCreativeProject } from '../creative/creativeRenderer.js'
 import { useCreativeProject } from '../hooks/useCreativeProject.js'
 import { downloadCanvasPng } from '../utils/downloadUtils.js'
 import { prepareBackgroundImage } from '../utils/imageUtils.js'
@@ -319,9 +319,18 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
                 </Field>
                 <Field label="Font family" htmlFor="creative-font">
                   <select id="creative-font" value={selectedLayer.fontId} onChange={(event) => updateLayer(selectedLayer.id, { fontId: event.target.value })}>
-                    {CREATIVE_FONTS.map((font) => <option key={font.id} value={font.id}>{font.label}</option>)}
+                    {FONT_CATEGORIES.map((category) => (
+                      <optgroup key={category} label={category}>
+                        {CREATIVE_FONTS.filter((font) => font.category === category).map((font) => (
+                          <option key={font.id} value={font.id}>{font.label}</option>
+                        ))}
+                      </optgroup>
+                    ))}
                   </select>
                 </Field>
+                <p className="creative-font-preview" style={{ fontFamily: getCreativeFontFamily(selectedLayer.fontId) }}>
+                  {selectedLayer.text || 'A little preview · Aa Bb 123'}
+                </p>
                 <Field label={`Font size · ${Math.round(selectedLayer.size * 100)}% of canvas width`} htmlFor="creative-font-size">
                   <input id="creative-font-size" type="range" min="0.025" max="0.14" step="0.001" value={selectedLayer.size} onChange={(event) => updateLayer(selectedLayer.id, { size: Number(event.target.value) })} />
                 </Field>
