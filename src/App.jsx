@@ -10,6 +10,8 @@ import Toast from './components/Toast.jsx'
 import { useLocalStorage } from './hooks/useLocalStorage.js'
 import { useTasks } from './hooks/useTasks.js'
 import { useWallpaperSettings } from './hooks/useWallpaperSettings.js'
+import CreativeStudio from './components/CreativeStudio.jsx'
+import ToolSelector from './components/ToolSelector.jsx'
 import { STORAGE_KEYS } from './constants.js'
 import { createOffscreenCanvas, renderWallpaper } from './utils/wallpaperRenderer.js'
 import { getOutputSize } from './utils/wallpaperLayouts.js'
@@ -19,8 +21,11 @@ import './styles/global.css'
 import './styles/layout.css'
 import './styles/components.css'
 import './styles/responsive.css'
+import './styles/creative.css'
 
 function App() {
+  const [activeTool, setActiveTool] = useState('tasks')
+  const [lastCreativeTool, setLastCreativeTool] = useState('wallpaper')
   const [appearance, setAppearance] = useLocalStorage(STORAGE_KEYS.appearance, 'dark')
   const { tasks, addTask, editTask, completeTask, removeTask, reorderTask, removeCompleted, resetTasks, progress, persistenceEnabled } = useTasks()
   const {
@@ -142,12 +147,20 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Header
-        appearance={appearance}
-        onToggleAppearance={() => setAppearance(appearance === 'dark' ? 'light' : 'dark')}
-        onCreate={goToStudio}
-      />
-      <main>
+      <div hidden={activeTool !== 'tasks'}>
+        <Header
+          appearance={appearance}
+          onToggleAppearance={() => setAppearance(appearance === 'dark' ? 'light' : 'dark')}
+          onCreate={goToStudio}
+        />
+        <ToolSelector
+          activeTool={activeTool}
+          onSelect={(tool) => {
+            setActiveTool(tool)
+            if (tool !== 'tasks') setLastCreativeTool(tool)
+          }}
+        />
+        <main>
         <HeroSection previewCanvasRef={heroRef} aspectRatio={aspectRatio} />
         <section className="studio" id="studio">
           <div className="studio-copy">
@@ -212,11 +225,23 @@ function App() {
             </aside>
           </div>
         </section>
-      </main>
-      <footer className="site-footer">
-        <p>{BRAND_FOOTER}</p>
-      </footer>
-      <Toast toast={toast} />
+        </main>
+        <footer className="site-footer">
+          <p>{BRAND_FOOTER}</p>
+        </footer>
+        <Toast toast={toast} />
+      </div>
+      <div hidden={activeTool === 'tasks'}>
+        <CreativeStudio
+          active={activeTool !== 'tasks'}
+          tool={activeTool === 'tasks' ? lastCreativeTool : activeTool}
+          onBack={() => setActiveTool('tasks')}
+          onSwitchTool={(tool) => {
+            setActiveTool(tool)
+            if (tool !== 'tasks') setLastCreativeTool(tool)
+          }}
+        />
+      </div>
     </div>
   )
 }
