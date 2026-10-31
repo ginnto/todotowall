@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, Plus, Trash2, Video } from 'lucide-react'
 import { CREATIVE_FORMATS, CREATIVE_FONTS, FONT_CATEGORIES, MAX_TEXT_LAYERS } from '../creative/creativeRegistry.js'
 import { getCreativeFontFamily, renderCreativeProject } from '../creative/creativeRenderer.js'
 import { useCreativeProject } from '../hooks/useCreativeProject.js'
-import { downloadCanvasPng } from '../utils/downloadUtils.js'
+import { downloadCanvasPng, downloadCanvasVideo } from '../utils/downloadUtils.js'
 import { prepareBackgroundImage } from '../utils/imageUtils.js'
+import { prepareBackgroundVideo } from '../utils/videoUtils.js'
 import ToolSelector from './ToolSelector.jsx'
 
 function Field({ label, htmlFor, children }) {
@@ -35,6 +36,7 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
     setCustomDimensions,
   } = useCreativeProject(tool)
   const canvasRef = useRef(null)
+  const videoRef = useRef(null)
   const renderRevision = useRef(0)
   const projectRevision = useRef(0)
   const dragPointer = useRef(null)
@@ -42,9 +44,27 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState('info')
   const [exporting, setExporting] = useState(false)
+  const [backgroundVideoUrl, setBackgroundVideoUrl] = useState('')
+  const [backgroundVideoDuration, setBackgroundVideoDuration] = useState(0)
+  const [videoReady, setVideoReady] = useState(false)
+  const [videoPlaying, setVideoPlaying] = useState(false)
   const formats = CREATIVE_FORMATS[tool]
   const selectedLayer = project.layers.find((layer) => layer.id === selectedLayerId)
   const isSocial = tool === 'social'
+
+  useEffect(() => {
+    if (!backgroundVideoUrl) return undefined
+    return () => URL.revokeObjectURL(backgroundVideoUrl)
+  }, [backgroundVideoUrl])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !backgroundVideoUrl) return
+    video.play().catch(() => {
+      setMessage('Press play on the video preview to start playback.')
+      setMessageTone('info')
+    })
+  }, [backgroundVideoUrl])
 
   useEffect(() => {
     if (!formats.some((format) => format.id === project.formatId)) {
@@ -65,12 +85,44 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
       try {
         await renderCreativeProject(canvasRef.current, project, {
           selectedLayerId,
+          video: project.background.type === 'video' ? videoRef.current : null,
           isCurrent: () => !cancelled && revision === renderRevision.current,
         })
         if (!cancelled) {
           setMessage('')
           setMessageTone('info')
           setStatus('ready')
+          if (project.background.type === 'video' && videoReady) {
+            const renderVideoFrame = async () => {
+              await renderCreativeProject(canvasRef.current, project, {
+                selectedLayerId,
+                video: videoRef.current,
+                fontsLoaded: true,
+                isCurrent: () => !cancelled && revision === renderRevision.current,
+              })
+            }
+            let lastFrameAt = 0
+            const animate = () => {
+              frameRequest = requestAnimationFrame(async (timestamp) => {
+                if (timestamp - lastFrameAt < 33) {
+                  if (!cancelled) animate()
+                  return
+                }
+                lastFrameAt = timestamp
+                try {
+                  await renderVideoFrame()
+                  if (!cancelled) animate()
+                } catch (error) {
+                  if (!cancelled) {
+                    setMessage(error.message || 'The video preview could not be rendered.')
+                    setMessageTone('error')
+                    setStatus('error')
+                  }
+                }
+              })
+            }
+            animate()
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -80,12 +132,14 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
         }
       }
     }, 50)
+    let frameRequest
     return () => {
       cancelled = true
       window.clearTimeout(statusTimer)
       window.clearTimeout(timer)
+      if (frameRequest) cancelAnimationFrame(frameRequest)
     }
-  }, [active, project, selectedLayerId])
+  }, [active, project, selectedLayerId, videoReady])
 
   const onCanvasPointerDown = (event) => {
     const canvas = canvasRef.current
@@ -135,6 +189,25 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
     }
   }
 
+  const uploadVideo = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    try {
+      const { url, duration } = await prepareBackgroundVideo(file)
+      setVideoReady(false)
+      setVideoPlaying(false)
+      setBackgroundVideoDuration(duration)
+      setBackgroundVideoUrl(url)
+      updateBackground({ image: '', type: 'video' })
+      setMessage('Video added. It stays on this device. WebM exports are silent and use up to the first 30 seconds.')
+      setMessageTone('success')
+    } catch (error) {
+      setMessage(error.message || 'The video could not be added.')
+      setMessageTone('error')
+    }
+  }
+
   const nudgeLayer = (dx, dy) => {
     if (!selectedLayer) return
     updateLayer(selectedLayer.id, {
@@ -151,7 +224,9 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
     const revision = projectRevision.current
     try {
       const canvas = document.createElement('canvas')
-      const result = await renderCreativeProject(canvas, project)
+      const result = await renderCreativeProject(canvas, project, {
+        video: project.background.type === 'video' ? videoRef.current : null,
+      })
       if (revision !== projectRevision.current) {
         throw new Error('The design changed while the image was being prepared. Wait for the preview and try again.')
       }
@@ -168,7 +243,52 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
     }
   }, [exporting, formats, isSocial, project, status])
 
+  const downloadVideo = useCallback(async () => {
+    if (status !== 'ready' || exporting || !videoReady || !videoRef.current) return
+    setExporting(true)
+    setMessage('')
+    setMessageTone('info')
+    const revision = projectRevision.current
+    try {
+      const canvas = document.createElement('canvas')
+      await renderCreativeProject(canvas, project, {
+        video: videoRef.current,
+      })
+      if (revision !== projectRevision.current) {
+        throw new Error('The design changed while the video was being prepared. Wait for the preview and try again.')
+      }
+      const format = formats.find((item) => item.id === project.formatId)
+      const filename = `taskframe-${isSocial ? 'instagram' : 'wallpaper'}-${safeFilename(format?.label || 'custom')}-${project.width}x${project.height}.webm`
+      await downloadCanvasVideo(
+        canvas,
+        videoRef.current,
+        backgroundVideoDuration,
+        () => renderCreativeProject(canvas, project, {
+          video: videoRef.current,
+          fontsLoaded: true,
+        }),
+        filename,
+      )
+      setMessage(`Downloaded ${filename}`)
+      setMessageTone('success')
+    } catch (error) {
+      setMessage(error.message || 'The video could not be exported.')
+      setMessageTone('error')
+    } finally {
+      setExporting(false)
+    }
+  }, [backgroundVideoDuration, exporting, formats, isSocial, project, status, videoReady])
+
+  const removeVideo = () => {
+    setBackgroundVideoUrl('')
+    setBackgroundVideoDuration(0)
+    setVideoReady(false)
+    setVideoPlaying(false)
+    updateBackground({ type: 'gradient' })
+  }
+
   const title = isSocial ? 'Instagram post & story creator' : 'Custom wallpaper creator'
+  const videoBackground = isSocial && project.background.type === 'video'
 
   return (
     <main className="creative-page">
@@ -177,14 +297,21 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
           <ArrowLeft size={16} aria-hidden="true" />
           Task wallpaper
         </button>
-        <div>
+        <div className="creative-heading">
           <p className="eyebrow">TASKFRAME · CREATIVE STUDIO</p>
           <h1>{title}</h1>
         </div>
-        <button type="button" className="button primary creative-download" onClick={download} disabled={status !== 'ready' || exporting}>
-          <Download size={16} aria-hidden="true" />
-          {exporting ? 'Preparing…' : 'Download PNG'}
-        </button>
+        <div className="creative-header-actions">
+          <button type="button" className="button primary creative-download" onClick={videoBackground ? downloadVideo : download} disabled={status !== 'ready' || exporting || (videoBackground && !videoReady)}>
+            <Download size={16} aria-hidden="true" />
+            {exporting ? 'Preparing…' : videoBackground ? 'Download WebM' : 'Download PNG'}
+          </button>
+          {videoBackground ? (
+            <button type="button" className="button ghost" onClick={download} disabled={status !== 'ready' || exporting}>
+              Download still PNG
+            </button>
+          ) : null}
+        </div>
       </header>
 
       <ToolSelector activeTool={tool} onSelect={onSwitchTool} compact />
@@ -224,6 +351,7 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
                 <option value="solid">Solid color</option>
                 <option value="gradient">Gradient</option>
                 <option value="image">Photo</option>
+                {isSocial ? <option value="video">Video</option> : null}
               </select>
             </Field>
             <div className="creative-inline">
@@ -276,6 +404,53 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
                     </button>
                   </>
                 ) : <p className="field-hint">Choose a photo to use as your background. Images are processed locally.</p>}
+              </>
+            ) : null}
+            {isSocial && project.background.type === 'video' ? (
+              <>
+                <Field label="Upload a video" htmlFor="creative-video">
+                  <input id="creative-video" type="file" accept="video/*" onChange={uploadVideo} />
+                </Field>
+                {backgroundVideoUrl ? (
+                  <>
+                    <Field label="Video fit" htmlFor="creative-video-fit">
+                      <select id="creative-video-fit" value={project.background.imageFit} onChange={(event) => updateBackground({ imageFit: event.target.value })}>
+                        <option value="cover">Fill frame (crop)</option>
+                        <option value="contain">Fit whole video</option>
+                      </select>
+                    </Field>
+                    <Field label={`Video scale · ${project.background.imageScale.toFixed(2)}×`} htmlFor="creative-video-scale">
+                      <input id="creative-video-scale" type="range" min="1" max="3" step="0.01" value={project.background.imageScale} onChange={(event) => updateBackground({ imageScale: Number(event.target.value) })} />
+                    </Field>
+                    <Field label={`Overlay · ${Math.round(project.background.overlayOpacity * 100)}%`} htmlFor="creative-video-overlay">
+                      <input id="creative-video-overlay" type="range" min="0" max="0.9" step="0.01" value={project.background.overlayOpacity} onChange={(event) => updateBackground({ overlayOpacity: Number(event.target.value) })} />
+                    </Field>
+                    <Field label="Overlay color" htmlFor="creative-video-overlay-color">
+                      <input id="creative-video-overlay-color" type="color" value={project.background.overlayColor} onChange={(event) => updateBackground({ overlayColor: event.target.value })} />
+                    </Field>
+                    <p className="field-hint">
+                      {videoReady ? `Preview loops · ${Math.round(backgroundVideoDuration)} sec clip. WebM export is silent and capped at 30 seconds.` : 'Loading video preview…'}
+                    </p>
+                    {videoReady ? (
+                      <button
+                        type="button"
+                        className="button ghost"
+                        onClick={() => {
+                          const video = videoRef.current
+                          if (!video) return
+                          if (video.paused) video.play().catch(() => {
+                            setMessage('The video preview could not be played in this browser.')
+                            setMessageTone('error')
+                          })
+                          else video.pause()
+                        }}
+                      >
+                        {videoPlaying ? 'Pause video preview' : 'Play video preview'}
+                      </button>
+                    ) : null}
+                    <button type="button" className="button ghost" onClick={removeVideo}>Remove video</button>
+                  </>
+                ) : <p className="field-hint">Choose a video under 100 MB. Video processing stays on this device.</p>}
               </>
             ) : null}
           </section>
@@ -426,12 +601,35 @@ export default function CreativeStudio({ tool, active = true, onBack, onSwitchTo
               />
               {!project.layers.length ? <span className="creative-canvas-hint">Your composition begins here</span> : null}
             </div>
+            {backgroundVideoUrl ? (
+              <video
+                ref={videoRef}
+                src={backgroundVideoUrl}
+                className="creative-video-source"
+                muted
+                loop
+                playsInline
+                onLoadedData={() => setVideoReady(true)}
+                onPlay={() => setVideoPlaying(true)}
+                onPause={() => setVideoPlaying(false)}
+                onError={() => {
+                  setVideoReady(false)
+                  setMessage('The selected video could not be played in this browser.')
+                  setMessageTone('error')
+                }}
+              />
+            ) : null}
             {message ? <p className={messageTone === 'error' ? 'field-error' : 'creative-message'} role={messageTone === 'error' ? 'alert' : 'status'}>{message}</p> : null}
             <div className="creative-preview-footer">
               <p>Drag a text layer to position it, or use the controls for precise placement.</p>
-              <button type="button" className="button primary" onClick={download} disabled={status !== 'ready' || exporting}>
-                <Download size={16} aria-hidden="true" />{exporting ? 'Preparing…' : 'Download PNG'}
+              <button type="button" className="button primary" onClick={videoBackground ? downloadVideo : download} disabled={status !== 'ready' || exporting || (videoBackground && !videoReady)}>
+                {videoBackground ? <Video size={16} aria-hidden="true" /> : <Download size={16} aria-hidden="true" />}{exporting ? 'Preparing…' : videoBackground ? 'Download WebM' : 'Download PNG'}
               </button>
+              {videoBackground ? (
+                <button type="button" className="button ghost" onClick={download} disabled={status !== 'ready' || exporting}>
+                  Download still PNG
+                </button>
+              ) : null}
             </div>
           </section>
         </aside>

@@ -39,7 +39,7 @@ function fontFor(layer) {
   return CREATIVE_FONTS.find((font) => font.id === layer.fontId) || CREATIVE_FONTS[0]
 }
 
-function fillBackground(ctx, project, image) {
+function fillBackground(ctx, project, image, video) {
   const { width, height, background } = project
   if (background.type === 'solid') {
     ctx.fillStyle = background.color
@@ -64,6 +64,20 @@ function fillBackground(ctx, project, image) {
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(image, x, y, imageWidth, imageHeight)
+  }
+
+  if (video?.videoWidth && video?.videoHeight && video.readyState >= 2) {
+    const scaleBase = background.imageFit === 'contain'
+      ? Math.min(width / video.videoWidth, height / video.videoHeight)
+      : Math.max(width / video.videoWidth, height / video.videoHeight)
+    const scale = scaleBase * Math.max(1, Number(background.imageScale) || 1)
+    const videoWidth = video.videoWidth * scale
+    const videoHeight = video.videoHeight * scale
+    const x = (width - videoWidth) * background.imageX
+    const y = (height - videoHeight) * background.imageY
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(video, x, y, videoWidth, videoHeight)
   }
 
   if (Number(background.overlayOpacity) > 0) {
@@ -156,14 +170,14 @@ export async function renderCreativeProject(canvas, project, options = {}) {
   const { width, height } = dimensions
   const layers = Array.isArray(project.layers) ? project.layers : []
   const image = project.background.image ? await loadImage(project.background.image) : null
-  await loadFonts(layers)
+  if (!options.fontsLoaded) await loadFonts(layers)
   if (options.isCurrent && !options.isCurrent()) return { ...dimensions, cancelled: true }
-  canvas.width = width
-  canvas.height = height
+  if (canvas.width !== width) canvas.width = width
+  if (canvas.height !== height) canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('This browser could not create a 2D canvas context.')
   ctx.clearRect(0, 0, width, height)
-  fillBackground(ctx, { ...project, ...dimensions }, image)
+  fillBackground(ctx, { ...project, ...dimensions }, image, options.video)
   layers.forEach((layer) => drawLayer(ctx, { ...project, ...dimensions }, layer, options.selectedLayerId === layer.id))
   return { width, height }
 }

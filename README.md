@@ -1,6 +1,6 @@
 # TASKFRAME
 
-TASKFRAME is a browser-based creative studio for making daily task wallpapers, custom text wallpapers, and social media graphics. It uses React, Vite, and the Canvas 2D API. There is no application backend: task data, original wallpaper settings, and recent theme history use browser localStorage. Creative editor projects and selected photos stay in memory while the page is open, survive switching between tools, and reset on reload.
+TASKFRAME is a browser-based creative studio for making daily task wallpapers, custom text wallpapers, and social media graphics. It uses React, Vite, and the Canvas 2D API. There is no application backend: task data, original wallpaper settings, and recent theme history use browser localStorage. Creative editor projects and selected photos or videos stay in memory while the page is open, survive switching between tools, and reset on reload.
 
 ## Run and validate
 
@@ -16,9 +16,9 @@ npm run lint
 
 - **Task wallpaper** — existing task list, theme, layout, and customization workflow; renders a live canvas preview and downloads a PNG.
 - **Custom wallpaper** — phone, Full HD portrait, desktop, and bounded custom dimensions; solid, gradient, or uploaded-image background; editable text layers.
-- **Instagram graphics** — square post, portrait post, and story/reel cover dimensions; supports the same background and text editor while retaining the composition when changing formats.
+- **Instagram graphics** — square post, portrait post, and story/reel cover dimensions; supports solid, gradient, photo, and video backgrounds, plus editable text layers. Export stills as PNG or uploaded video compositions as silent WebM (up to 30 seconds; requires browser MediaRecorder support).
 
-The creative tools share a normalized text-layer model and renderer. Text placement uses normalized canvas coordinates, so it remains in proportion when the output format changes. Uploaded images are resized and encoded locally using the existing image utility. The task wallpaper renderer and its localStorage keys remain independent from the creative editors.
+The creative tools share a normalized text-layer model and renderer. Text placement uses normalized canvas coordinates, so it remains in proportion when the output format changes. Uploaded images are resized and encoded locally; video files are validated and previewed locally. The task wallpaper renderer and its localStorage keys remain independent from the creative editors.
 
 ## Font collection
 
@@ -49,7 +49,8 @@ src/
   utils/
     canvasUtils.js            Shared low-level canvas helpers
     imageUtils.js             Local photo validation and compression
-    downloadUtils.js          Canvas-to-PNG download helpers
+    videoUtils.js             Local video validation and metadata
+    downloadUtils.js          Canvas-to-PNG and WebM download helpers
     wallpaperLayouts.js       Existing task wallpaper sizing and layout
     wallpaperRenderer.js      Existing task wallpaper renderer
   styles/

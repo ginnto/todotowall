@@ -187,6 +187,18 @@ describe('creative renderer and editor', () => {
     expect(endY).toBeLessThan(540)
   })
 
+  it('draws the current video frame as a creative background', async () => {
+    const canvas = document.createElement('canvas')
+    const video = { videoWidth: 1920, videoHeight: 1080, readyState: 2 }
+    await renderCreativeProject(canvas, {
+      width: 1080,
+      height: 1080,
+      background: { type: 'video', imageFit: 'cover', imageScale: 1, imageX: 0.5, imageY: 0.5, overlayOpacity: 0 },
+      layers: [],
+    }, { video })
+    expect(canvas.getContext('2d').drawImage).toHaveBeenCalledWith(video, -420, 0, 1920, 1080)
+  })
+
   it('compresses uploaded images in-browser and rejects non-image files', async () => {
     class MockImage {
       naturalWidth = 4400
@@ -211,6 +223,7 @@ describe('creative renderer and editor', () => {
     render(<CreativeStudio tool="social" onBack={() => {}} onSwitchTool={() => {}} />)
 
     expect(screen.getByRole('heading', { name: 'Instagram post & story creator' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Video' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Add text/i }))
     expect(screen.getByLabelText('Text')).toBeInTheDocument()
     expect(screen.getByRole('option', { name: /Great Vibes/i })).toBeInTheDocument()
